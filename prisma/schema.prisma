@@ -1,0 +1,151 @@
+// File: prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id             String           @id
+  email          String           @unique(map: "User_email_key")
+  username       String           @unique(map: "User_username_key")
+  name           String?
+  surname        String?
+  role           String           @default("user")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  lastLoginAt    DateTime?
+  gender         String?
+  
+  // Relationships
+  answers        answers[]
+  answerreport   answerreport[]
+  questionreport questionreport[]
+  questions      questions[]
+  session        session[]
+  suggestion     suggestion[]
+  upvote         upvote[]
+}
+
+model questions {
+  id                 String    @id
+  text               String    @db.Text
+  category           String
+  district           String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+  authorId           String?
+  answersCount       Int       @default(0)
+  reportCount        Int       @default(0)
+  notificationsMuted Boolean   @default(false)
+  notifiedAt3        Boolean   @default(false)
+  notifiedAt7        Boolean   @default(false)
+  isClosed           Boolean   @default(false)
+  
+  // Relationships
+  answers            answers[]
+  user               user?     @relation(fields: [authorId], references: [id], map: "Question_authorId_fkey")
+
+  @@index([authorId], map: "Question_authorId_fkey")
+}
+
+model answers {
+  id          String    @id
+  text        String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  questionId  String
+  authorId    String?
+  reportCount Int       @default(0)
+  
+  // Relationships
+  user        user?     @relation(fields: [authorId], references: [id], map: "Answer_authorId_fkey")
+  questions   questions @relation(fields: [questionId], references: [id], onDelete: Cascade, map: "Answer_questionId_fkey")
+
+  @@index([authorId], map: "Answer_authorId_fkey")
+  @@index([questionId], map: "Answer_questionId_fkey")
+}
+
+model upvote {
+  id         String   @id
+  userId     String?
+  answerId   String
+  createdAt  DateTime @default(now())
+  questionId String?
+  
+  // Relationships
+  user       user?    @relation(fields: [userId], references: [id], map: "Upvote_userId_fkey")
+
+  @@unique([answerId, userId], map: "Upvote_answerId_userId_key")
+  @@index([userId], map: "Upvote_userId_fkey")
+}
+
+model questionreport {
+  id                    String   @id
+  reason                String
+  createdAt             DateTime @default(now())
+  userId                String
+  questionId            String
+  reportedAuthorUsername String?
+  
+  // Relationships
+  user                  user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "QuestionReport_userId_fkey")
+
+  @@index([questionId], map: "QuestionReport_questionId_fkey")
+  @@index([userId], map: "QuestionReport_userId_fkey")
+}
+
+model answerreport {
+  id                    String   @id
+  reason                String
+  createdAt             DateTime @default(now())
+  userId                String
+  answerId              String
+  reportedAuthorUsername String?
+  
+  // Relationships
+  user                  user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "AnswerReport_userId_fkey")
+
+  @@index([answerId], map: "AnswerReport_answerId_fkey")
+  @@index([userId], map: "AnswerReport_userId_fkey")
+}
+
+model session {
+  id        String   @id
+  userId    String
+  token     String   @unique(map: "Session_token_key")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  // Relationships
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
+
+  @@index([userId], map: "Session_userId_fkey")
+}
+
+model verificationcode {
+  id        String   @id
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model suggestion {
+  id          String   @id
+  type        String
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  userId      String
+  
+  // Relationships
+  user        user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Suggestion_userId_fkey")
+
+  @@index([userId], map: "Suggestion_userId_fkey")
+}
